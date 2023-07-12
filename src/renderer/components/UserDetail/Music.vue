@@ -42,6 +42,7 @@ import CenteredLoading from '@/components/CenteredLoading.vue';
 
 export default {
     props: {
+        /** @type {Vue.PropOptions<Types.UserInfoRes>} */
         user: {
             type: Object,
             required: true
@@ -50,15 +51,19 @@ export default {
     data() {
         return {
             loading: true,
+            /** @type {Types.SubscribedDjRadio[]} */
             radios: [],
             // columns: [],
+            /** @type {Types.UserPlaylist[]} */
             playlists: []
         };
     },
     computed: {
+        /** @returns {Models.Playlist[]} */
         listCreated() {
             return this.playlists.filter(p => p.creator.userId === this.user.profile.userId);
         },
+        /** @returns {Models.Playlist[]} */
         listCollected() {
             return this.playlists.filter(p => p.creator.userId !== this.user.profile.userId);
         }
@@ -72,7 +77,7 @@ export default {
                     this.radios = r.djRadios;
                 }
             });
-            const p2 = Api.getUserPlaylist(id).then(r => {
+            const p2 = Api.getUserPlaylists(id).then(r => {
                 if (r.code === 200) {
                     this.playlists = r.playlist;
                 }

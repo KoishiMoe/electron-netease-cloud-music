@@ -9,14 +9,18 @@ import { encodeWeb, encodeLinux, encodeEApi, decodeEApi, getCacheKey } from './c
 
 const d = debug('HTTP');
 
-class HttpClient {
+export default class HttpClient {
+
+    static DesktopUserAgent = 'Mozilla/5.0 (Linux) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36';
+    static MobileUserAgent = 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Mobile Safari/537.36';
+
     constructor() {
         this.clientHeaders = {
             Accept: '*/*',
             'Accept-Language': 'zh',
             'Accept-Encoding': 'gzip',
             Referer: 'https://music.163.com/',
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Mobile Safari/537.36'
+            'User-Agent': HttpClient.MobileUserAgent
         };
         this.initCookieJar();
     }
@@ -24,7 +28,7 @@ class HttpClient {
     initCookieJar() {
         this.cookieJar = new CookieJar();
         this.cookieJar.setCookies([
-            'appver=8.8.12',
+            'appver=8.10.20',
             'mobilename=linux',
             'os=android',
             'osver=10.0.0',
@@ -62,8 +66,12 @@ class HttpClient {
         return c.value;
     }
 
-    getCookieString() {
+    getCookieString(excludeMobile = false) {
         const cookies = this.cookieJar.getCookies(CookieAccessInfo.All);
+        if (excludeMobile) {
+            const excluded = ['appver', 'mobilename', 'os', 'osver'];
+            return cookies.filter(c => !excluded.includes(c.name)).map(c => c.toValueString()).join('; ');
+        }
         return cookies.map(c => c.toValueString()).join('; ');
     }
 
@@ -77,6 +85,20 @@ class HttpClient {
             hd.Cookie += ('; ' + this.getCookieString());
         } else {
             hd.Cookie = this.getCookieString();
+        }
+        return hd;
+    }
+
+    /**
+     * merge provided header key-value maps with pre-defined headers, excluding mobile client headers
+     * @param  {...any} headers headers to append
+     */
+    mergeHeadersWeb(...headers) {
+        let hd = Object.assign({}, this.clientHeaders, ...headers);
+        if (hd.Cookie) {
+            hd.Cookie += ('; ' + this.getCookieString(true));
+        } else {
+            hd.Cookie = this.getCookieString(true);
         }
         return hd;
     }
@@ -135,12 +157,22 @@ class HttpClient {
      * wrapper of electron-fetch function
      * @param {string} url
      * @param {import('electron-fetch').RequestInit} init
+     * @param {boolean} excludeMobile
      */
-    async post(url, init) {
-        init.headers = this.mergeHeaders({
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Content-Length': Buffer.byteLength(init.body)
-        }, init.headers);
+    async post(url, init, excludeMobile = false) {
+        let headers;
+        if (excludeMobile) {
+            headers = this.mergeHeadersWeb({
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Length': Buffer.byteLength(init.body)
+            }, init.headers);
+        } else {
+            headers = this.mergeHeaders({
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Length': Buffer.byteLength(init.body)
+            }, init.headers);
+        }
+        init.headers = headers;
 
         const res = await fetch(url, init);
         this.handleResponse(res);
@@ -168,7 +200,7 @@ class HttpClient {
             body.csrf_token = __csrf;
         }
         init.body = qs.stringify(encodeWeb(body));
-        return this.post(url, init);
+        return this.post(url, init, true);
     }
 
     /**
@@ -234,5 +266,3 @@ class HttpClient {
         return json;
     }
 }
-
-export default HttpClient;

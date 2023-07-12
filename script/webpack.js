@@ -2,6 +2,8 @@
 
 'use strict';
 
+const cp = require('child_process');
+
 // cleanup process.argv before patch-package
 let argv = process.argv.slice(2);
 if (argv.length === 0) {
@@ -10,8 +12,8 @@ if (argv.length === 0) {
     process.argv = process.argv.slice(0, 2);
 }
 
-// yeah! patch packages!
-require('patch-package');
+// yeah! patch package!
+cp.execSync('patch-package');
 
 process.env.NODE_ENV = 'production';
 

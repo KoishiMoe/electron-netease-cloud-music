@@ -64,7 +64,8 @@ export default {
     methods: {
         ...mapActions([
             'updateSettings',
-            'resetSettings'
+            'resetSettings',
+            'updateMainWindowTitle'
         ]),
         shouldShowOption(item) {
             if (!item.depends && !item.exclude) return true;
@@ -184,6 +185,9 @@ export default {
                         case 'windowBorder':
                             this.$nextTick(() => this.recreateWindow());
                             break;
+                        case 'titleBarShowsTrackName':
+                            this.updateMainWindowTitle(val);
+                            break;
                         case 'windowZoom':
                             webContents.setZoomFactor(val || 1);
                             break;
@@ -212,8 +216,6 @@ export default {
     },
     created() {
         this.initData();
-        this.Option = Option;
-        this.Entries = Entries;
         this.Platforms = { isLinux, isDarwin };
         this.unsub = this.subscribeMutation();
     },
