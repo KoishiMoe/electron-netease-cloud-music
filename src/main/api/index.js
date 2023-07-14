@@ -35,7 +35,7 @@ const downloader = new Downloader(musicCache);
 
 /**
  * clear all cookies, and set cookie as given arguments
- * @param {string | string[] | Record<string, string>} [cookie]
+ * @param {Record<string, string>} [cookie]
  */
 export function updateCookie(cookie) {
     client.updateCookie(cookie);
